@@ -6,12 +6,25 @@ import os
 # ---------------- Database Manager ----------------
 class DatabaseManager:
     def __init__(self, db_name="clinic.db"):
-        self.db_path = os.path.join(os.getcwd(), db_name)
+        
+        # 💡 التعديل: استخدام مسار تخزين بيانات التطبيق FLET_APP_STORAGE_DATA
+        app_data_path = os.getenv("FLET_APP_STORAGE_DATA")
+        
+        if app_data_path:
+            # استخدام مسار التخزين الآمن والقابل للكتابة على الهاتف
+            self.db_path = os.path.join(app_data_path, db_name)
+        else:
+            # العودة إلى دليل العمل الحالي (للتجربة على سطح المكتب)
+            self.db_path = os.path.join(os.getcwd(), db_name)
+            
+        print(f"Database Path: {self.db_path}") # سطر إضافي للمساعدة في التصحيح إذا لزم الأمر
+
         self.conn = sqlite3.connect(self.db_path)
         self.cursor = self.conn.cursor()
         self.create_tables()
 
     def create_tables(self):
+# ... (باقي كود create_tables لم يتغير) ...
         self.cursor.execute("""
             CREATE TABLE IF NOT EXISTS patients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -244,6 +257,8 @@ def main(page: ft.Page):
 
     # ================= Appointments Tab =================
     def appointments_tab():
+        # ملاحظة: تم الإبقاء على جلب القوائم داخل الدالة. إذا أضفت مريضًا أو طبيبًا، 
+        # يجب أن تعيد تشغيل التطبيق أو تضبط الكود لجلب القوائم ديناميكيًا عند تبديل علامة التبويب
         pat_list = db.get_patients()
         doc_list = db.get_doctors()
         serv_list = db.get_services()
