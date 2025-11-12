@@ -1,6 +1,7 @@
 import flet as ft
 import sqlite3
 from datetime import datetime
+import os # 🌟 (1) إضافة استيراد مكتبة os
 
 # --- Database Manager (Optimized for Flet Concurrency) ---
 class DatabaseManager:
@@ -14,6 +15,7 @@ class DatabaseManager:
         # استخدام with self.conn لضمان عمل commit/rollback وتحرير القفل
         with self.conn:
             try:
+                 # محاولة قراءة جدول للتأكد من وجوده، وإلا سيتم حذفه وإنشاؤه
                  self.conn.execute("SELECT service_id, payment_status FROM appointments LIMIT 1")
             except sqlite3.OperationalError:
                 self.conn.execute("DROP TABLE IF EXISTS appointments")
@@ -158,7 +160,7 @@ class DatabaseManager:
         with self.conn:
             self.conn.execute("DELETE FROM appointments WHERE appointment_id=?", (appointment_id,))
 
-# --- Flet Main Application Function ---
+# --- Flet Main Application Function (التعديلات هنا) ---
 def main(page: ft.Page):
     
     # --- App Configuration & Theme ---
@@ -167,8 +169,13 @@ def main(page: ft.Page):
     page.vertical_alignment = ft.MainAxisAlignment.START
     page.bgcolor = "#2E3440" 
     
+    # 🌟 التعديل الأساسي لتحديد مسار قاعدة البيانات على الأندرويد 🌟
+    # تحديد مسار التخزين الداعم للتطبيق
+    db_path = os.path.join(page.platform_dirs.app_support_dir, "clinic.db")
+    
     # --- Database Instance ---
-    db = DatabaseManager("clinic.db")
+    # استخدام المسار الكامل لقاعدة البيانات
+    db = DatabaseManager(db_path)
 
     # --- Global Page Controls (Widgets) ---
     selected_patient_id = ft.Text(value=None, visible=False) 
@@ -503,6 +510,7 @@ def main(page: ft.Page):
             return None
             
         try:
+            # استخدام .split() للحصول على الـ ID من القائمة المنسدلة
             p_id = int(p_text.split("(ID: ")[1].strip(")"))
             d_id = int(d_text.split("(ID: ")[1].strip(")"))
             s_id = int(s_text.split("(ID: ")[1].split(")")[0].strip()) 
@@ -703,15 +711,7 @@ def main(page: ft.Page):
     page.add(main_content_area)
     show_dashboard() 
 
-# --- Flet Entry Point (FIXED: Simplified check before running main app) ---
+# --- Flet Entry Point (التعديل هنا) ---
 if __name__ == "__main__":
-    # لا حاجة لعملية فحص معقدة بعد استخدام نمط `with self.conn:` في `DatabaseManager`
-    # سيتم إنشاء الجداول إذا لم تكن موجودة.
-    try:
-        # هذه الخطوة مهمة لضمان عدم وجود قفل قديم
-        conn = sqlite3.connect("clinic.db", check_same_thread=False)
-        conn.close()
-    except Exception:
-        pass # تجاهل أي فشل في الإغلاق إذا كان الملف محذوفًا/مشوشًا
-
+    # 🌟 (2) إزالة محاولة الاتصال والإغلاق اليدوية لتجنب المشاكل في بيئات مختلفة
     ft.app(target=main)
